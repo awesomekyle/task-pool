@@ -1,7 +1,7 @@
 # Findgoogletest
 
 # Set the default path to the googletest submodule
-set(GOOGLETEST_PATH "${CMAKE_SOURCE_DIR}/3rd_party/googletest")
+set(GOOGLETEST_PATH "${CMAKE_SOURCE_DIR}/3rd-party/googletest")
 
 # Allow qflags to be built without Google Test
 if(EXISTS ${GOOGLETEST_PATH}/CMakeLists.txt)
