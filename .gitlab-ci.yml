@@ -17,3 +17,23 @@ win7:
         - "cmake --build ."
     tags:
         - win7
+
+linux:
+    script:
+        - "git submodule update --init"
+        - "mkdir build"
+        - "cd build"
+        - "cmake .."
+        - "cmake --build ."
+    tags:
+        - lin
+
+mac:
+    script:
+        - "git submodule update --init"
+        - "mkdir build"
+        - "cd build"
+        - "cmake .."
+        - "cmake --build ."
+    tags:
+        - mac
