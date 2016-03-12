@@ -7,3 +7,13 @@ win10:
         - "cmake --build ."
     tags:
         - win10
+
+win7:
+    script:
+        - "git submodule update --init"
+        - "mkdir build"
+        - "cd build"
+        - "cmake -G \"Visual Studio 14 Win64\" .."
+        - "cmake --build ."
+    tags:
+        - win7
