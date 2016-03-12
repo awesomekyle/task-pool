@@ -7,29 +7,38 @@ win10:
     tags:
         - win10
 
-win7:
+msvc_clang:
     script:
         - "mkdir build"
         - "cd build"
-        - "cmake -G \"Visual Studio 14 Win64\" .."
+        - "cmake -G \"Visual Studio 14 Win64\" -T v140_clang_3_7 .."
         - "cmake --build ."
     tags:
-        - win7
+        - vs2015
 
-linux:
+linux_gcc:
     script:
         - "mkdir build"
         - "cd build"
-        - "cmake .."
+        - "CC=gcc CXX=g++ cmake .."
         - "cmake --build ."
     tags:
         - lin
 
-mac:
+linux_clang:
     script:
         - "mkdir build"
         - "cd build"
-        - "cmake .."
+        - "CC=clang CXX=clang++ cmake .."
+        - "cmake --build ."
+    tags:
+        - lin
+
+mac_xcode:
+    script:
+        - "mkdir build"
+        - "cd build"
+        - "cmake -GXcode .."
         - "cmake --build ."
     tags:
         - mac
