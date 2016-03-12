@@ -37,8 +37,8 @@ if(MSVC)
         set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits /MP /sdl")
         # -fno-rtti         Disable RTTI
         # -fno-exceptions   Disable exceptions
-        set(cxx_flags "${compiler_flags} -fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
-        set(c_flags "${compiler_flags} -std=c99")
+        set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual")
+        set(c_flags "")
 
         # Set gmock and gtest as system headers in order to suppress warnings.
         set(compiler_flags "${compiler_flags} --system-header-prefix=gtest/")
@@ -82,9 +82,10 @@ if(MSVC)
     add_definitions(-D_UNICODE -DUNICODE)
 
     # Enable automatic strcpy => strcpy_s conversion
-    add_definitions(-D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1
-                    -D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1
-    )
+    # FIXME: Doesn't work with Microsoft's clang
+    #add_definitions(-D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1
+    #                -D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1
+    #)
 
     # Enable edit-and-continue support
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /ZI")
@@ -100,8 +101,8 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR ${CMAKE_CXX_COMPILER_ID} STREQUA
     set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits -Wunused-parameter")
     # -fno-rtti         Disable RTTI
     # -fno-exceptions   Disable exceptions
-    set(cxx_flags "${compiler_flags} -fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
-    set(c_flags "${compiler_flags} -std=c99")
+    set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
+    set(c_flags "-std=c99")
 
     foreach (flag_var ${C_FLAGS} ${CXX_FLAGS})
         # Set base compiler flags
