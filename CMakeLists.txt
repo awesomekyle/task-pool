@@ -34,10 +34,10 @@ if(MSVC)
         # -pedantic         Warn when using unstandard language extensions
         # /MP               Multi-process compilation
         # /sdl              Additional security checks
-        set(compiler_flags "-Wall -Wextra -Werror -pedantic -Woverloaded-virtual -Wtype-limits /MP /sdl")
+        set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits /MP /sdl")
         # -fno-rtti         Disable RTTI
         # -fno-exceptions   Disable exceptions
-        set(cxx_flags "${compiler_flags} -fno-rtti -fno-exceptions -std=c++11")
+        set(cxx_flags "${compiler_flags} -fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
         set(c_flags "${compiler_flags} -std=c99")
 
         # Set gmock and gtest as system headers in order to suppress warnings.
@@ -97,10 +97,10 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR ${CMAKE_CXX_COMPILER_ID} STREQUA
     # -Werror       Warnings as errors
     # -pedantic     Warn when using unstandard language extensions
     # -std=c++11    Use C++11 language features
-    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Woverloaded-virtual -Wtype-limits -Wunused-parameter -std=c++11")
+    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits -Wunused-parameter -std=c++11")
     # -fno-rtti         Disable RTTI
     # -fno-exceptions   Disable exceptions
-    set(cxx_flags "${compiler_flags} -fno-rtti -fno-exceptions -std=c++11")
+    set(cxx_flags "${compiler_flags} -fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
     set(c_flags "${compiler_flags} -std=c99")
 
     foreach (flag_var ${C_FLAGS} ${CXX_FLAGS})
