@@ -100,8 +100,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR ${CMAKE_CXX_COMPILER_ID} STREQUA
     # -Werror       Warnings as errors
     # -pedantic     Warn when using unstandard language extensions
     # -std=c++11    Use C++11 language features
-    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits 
-                        -Wunused-parameter -Wno-missing-field-initializers")
+    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits -Wunused-parameter -Wno-missing-field-initializers")
     # -fno-rtti         Disable RTTI
     # -fno-exceptions   Disable exceptions
     set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
@@ -152,11 +151,11 @@ if(TARGET gtest)
 
     add_executable(task-pool-test ${TEST_SOURCES})
     target_link_libraries(task-pool-test gtest_main task-pool)
-    
+
     add_custom_command(TARGET task-pool-test
                        POST_BUILD
                        COMMAND task-pool-test)
-    
+
     if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
         target_compile_options(task-pool-test PUBLIC /analyze /wd6326)
     endif()
