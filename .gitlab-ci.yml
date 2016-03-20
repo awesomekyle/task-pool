@@ -1,17 +1,17 @@
-win10:
+msvc14:
     script:
         - "mkdir build"
         - "cd build"
-        - "cmake -G \"Visual Studio 14 Win64\" .."
+        - "cmake -DCMAKE_BUILD_TYPE=Release -G \"Visual Studio 14 Win64\" .."
         - "cmake --build ."
     tags:
         - win10
 
-msvc_clang:
+msvc14_clang:
     script:
         - "mkdir build"
         - "cd build"
-        - "cmake -G \"Visual Studio 14 Win64\" -T v140_clang_3_7 .."
+        - "cmake -DCMAKE_BUILD_TYPE=Release -G \"Visual Studio 14 Win64\" -T v140_clang_3_7 .."
         - "cmake --build ."
     tags:
         - vs2015
@@ -20,7 +20,7 @@ linux_gcc:
     script:
         - "mkdir build"
         - "cd build"
-        - "CC=gcc CXX=g++ cmake .."
+        - "CC=gcc CXX=g++ cmake -DCMAKE_BUILD_TYPE=Release .."
         - "cmake --build ."
     tags:
         - lin
@@ -29,7 +29,7 @@ linux_clang:
     script:
         - "mkdir build"
         - "cd build"
-        - "CC=clang CXX=clang++ cmake .."
+        - "CC=clang CXX=clang++ cmake -DCMAKE_BUILD_TYPE=Release .."
         - "cmake --build ."
     tags:
         - lin
@@ -38,7 +38,7 @@ mac_xcode:
     script:
         - "mkdir build"
         - "cd build"
-        - "cmake -GXcode .."
+        - "cmake -GXcode -DCMAKE_BUILD_TYPE=Release .."
         - "cmake --build ."
     tags:
         - mac
