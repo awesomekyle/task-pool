@@ -5,9 +5,14 @@ extern "C" {
 #endif /* __cplusplus */
 
 typedef struct TaskPool TaskPool;
-typedef void* (tpAllocator)(size_t, void*);
 
-TaskPool* tpCreatePool(int num_threads, tpAllocator* allocator, void* user_data);
+typedef struct AllocationCallbacks {
+    void* (*allocate_function)(size_t size, void* user_data);
+    void (*free_function)(void* data, void* user_data);
+    void* user_data;
+} AllocationCallbacks;
+
+TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator);
 void tpDestroyPool(TaskPool* pool);
 
 
