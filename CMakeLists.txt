@@ -146,7 +146,6 @@ endif()
 if(TARGET gtest)
     set(TEST_SOURCES
         test/pool_test.cpp
-        test/task-pool_test.c
     )
 
     add_executable(task-pool-test ${TEST_SOURCES})
