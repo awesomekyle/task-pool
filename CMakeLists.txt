@@ -130,6 +130,9 @@ endif()
 ###
 set(SOURCES
     include/task-pool/task-pool.h
+    src/stdatomic.h
+    src/stdatomic.cpp
+    src/spmc-queue.h
     src/task-pool.c
 )
 
@@ -146,6 +149,7 @@ endif()
 if(TARGET gtest)
     set(TEST_SOURCES
         test/pool_test.cpp
+        test/spmc-queue_test.cpp
     )
 
     add_executable(task-pool-test ${TEST_SOURCES})
