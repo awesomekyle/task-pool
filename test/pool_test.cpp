@@ -19,7 +19,6 @@ TEST(TaskPool, CreatePool)
 }
 TEST(TaskPool, CreatePoolCustomAllocator)
 {
-
     auto const allocate = [](size_t size, void* user_data) -> void* {
         (*(int*)user_data) = 123;
         return malloc(size);
@@ -40,6 +39,32 @@ TEST(TaskPool, CreatePoolCustomAllocator)
     ASSERT_EQ(123, test_int);
     tpDestroyPool(pool);
     ASSERT_EQ(456, test_int);
+}
+
+struct TaskPoolTasks : public ::testing::Test {
+    void SetUp(void)
+    {
+        pool = tpCreatePool(4, nullptr);
+        ASSERT_NE(nullptr, pool);
+    }
+    void TearDown(void)
+    {
+        tpDestroyPool(pool);
+    }
+
+    TaskPool* pool = nullptr;
+};
+
+TEST_F(TaskPoolTasks, SpawnSimpleTask)
+{
+    auto const task_function = [](void* data) {
+        (*(int*)data) = 123;
+    };
+
+    int test_int = 0;
+    Task* task = tpSpawnTask(pool, task_function, &test_int);
+    tpWaitForTask(pool, task);
+    ASSERT_EQ(123, test_int);
 }
 
 }

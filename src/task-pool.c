@@ -45,3 +45,16 @@ void tpDestroyPool(TaskPool* pool)
     pool->allocator.free_function(pool, pool->allocator.user_data);
 }
 
+Task* tpSpawnTask(TaskPool* pool, TaskFunction* function, void* data)
+{
+    function(data);
+    (void)pool;
+    return (Task*)0xFF;
+}
+
+void tpWaitForTask(TaskPool* pool, Task* task)
+{
+    (void)pool;
+    (void)task;
+}
+
