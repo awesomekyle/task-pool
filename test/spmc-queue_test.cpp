@@ -13,19 +13,19 @@ namespace {
 
 TEST(SPMCQueue, CreateQueue)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     ASSERT_EQ(0, spmcqSize(&queue));
 }
 TEST(SPMCQueue, PushItem)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     int const result = spmcqPush(&queue, (void*)0x1234);
     ASSERT_EQ(0, result);
     ASSERT_EQ(1, spmcqSize(&queue));
 }
 TEST(SPMCQueue, PushItemFailsWhenQueueIsFull)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     // fill queue
     for (int ii = 0; ii < kMaxQueueSize - 1; ++ii) {
         spmcqPush(&queue, (void*)0x1234);
@@ -41,12 +41,12 @@ TEST(SPMCQueue, PushItemFailsWhenQueueIsFull)
 
 TEST(SPMCQueue, PopItemFromEmptyQueueReturnsNULL)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     ASSERT_EQ(nullptr, spmcqPop(&queue));
 }
 TEST(SPMCQueue, PopValidItem)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     spmcqPush(&queue, (void*)0x1234);
     void* const value = spmcqPop(&queue);
     ASSERT_EQ((void*)0x1234, value);
@@ -55,7 +55,7 @@ TEST(SPMCQueue, PopValidItem)
 
 TEST(SPMCQueue, PopIsLIFOOrder)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     spmcqPush(&queue, (void*)0x1);
     spmcqPush(&queue, (void*)0x2);
     spmcqPush(&queue, (void*)0x3);
@@ -68,7 +68,7 @@ TEST(SPMCQueue, PopIsLIFOOrder)
 }
 TEST(SPMCQueue, PopEmptiesQueue)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     spmcqPush(&queue, (void*)0x1);
     spmcqPush(&queue, (void*)0x2);
     spmcqPush(&queue, (void*)0x3);
@@ -81,19 +81,19 @@ TEST(SPMCQueue, PopEmptiesQueue)
 
 TEST(SPMCQueue, StealItemFromEmptyQueueReturnsNULL)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     ASSERT_EQ(nullptr, spmcqSteal(&queue));
 }
 TEST(SPMCQueue, StealValidItemFromQueue)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     spmcqPush(&queue, (void*)0x1234);
     ASSERT_EQ((void*)0x1234, spmcqSteal(&queue));
 }
 
 TEST(SPMCQueue, StealIsFIFOOrder)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     spmcqPush(&queue, (void*)0x1);
     spmcqPush(&queue, (void*)0x2);
     spmcqPush(&queue, (void*)0x3);
@@ -106,7 +106,7 @@ TEST(SPMCQueue, StealIsFIFOOrder)
 }
 TEST(SPMCQueue, StealEmptiesQueue)
 {
-    SPMCQueue queue = { 0 };
+    SPMCQueue queue = { {0} };
     spmcqPush(&queue, (void*)0x1);
     spmcqPush(&queue, (void*)0x2);
     spmcqPush(&queue, (void*)0x3);

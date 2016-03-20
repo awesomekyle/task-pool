@@ -101,7 +101,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR ${CMAKE_CXX_COMPILER_ID} STREQUA
     # -Werror       Warnings as errors
     # -pedantic     Warn when using unstandard language extensions
     # -std=c++11    Use C++11 language features
-    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits -Wunused-parameter -Wno-missing-field-initializers -Wno-missing-braces")
+    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits -Wunused-parameter -Wno-missing-field-initializers")
     # -fno-rtti         Disable RTTI
     # -fno-exceptions   Disable exceptions
     set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
