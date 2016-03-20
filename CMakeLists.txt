@@ -34,7 +34,9 @@ if(MSVC)
         # -pedantic         Warn when using unstandard language extensions
         # /MP               Multi-process compilation
         # /sdl              Additional security checks
-        set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits /MP /sdl")
+        set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits /MP /sdl
+                            -Wno-unused-value
+                            -fstack-protector-all")
         # -fno-rtti         Disable RTTI
         # -fno-exceptions   Disable exceptions
         set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual")
@@ -98,7 +100,8 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR ${CMAKE_CXX_COMPILER_ID} STREQUA
     # -Werror       Warnings as errors
     # -pedantic     Warn when using unstandard language extensions
     # -std=c++11    Use C++11 language features
-    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits -Wunused-parameter")
+    set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits 
+                        -Wunused-parameter -Wno-missing-field-initializers")
     # -fno-rtti         Disable RTTI
     # -fno-exceptions   Disable exceptions
     set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual -std=c++11")
@@ -126,18 +129,36 @@ endif()
 ###
 # source
 ###
+set(SOURCES
+    include/task-pool/task-pool.h
+    src/task-pool.c
+)
 
+add_library(task-pool STATIC ${SOURCES})
+target_include_directories(task-pool PUBLIC include)
+
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    target_compile_options(task-pool PUBLIC /analyze /wd6326)
+endif()
 
 ###
 # test
 ###
 if(TARGET gtest)
     set(TEST_SOURCES
-        test/queue_test.cpp
+        test/pool_test.cpp
         test/task-pool_test.c
     )
 
     add_executable(task-pool-test ${TEST_SOURCES})
-    target_link_libraries(task-pool-test gtest_main)
+    target_link_libraries(task-pool-test gtest_main task-pool)
+    
+    add_custom_command(TARGET task-pool-test
+                       POST_BUILD
+                       COMMAND task-pool-test)
+    
+    if(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+        target_compile_options(task-pool-test PUBLIC /analyze /wd6326)
+    endif()
 
 endif()
