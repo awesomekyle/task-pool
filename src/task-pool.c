@@ -21,14 +21,14 @@ enum {
 };
 
 /* struct definitions */
-typedef struct ALIGN(CACHE_LINE_SIZE) Task {
+struct ALIGN(CACHE_LINE_SIZE) Task {
     TaskFunction*   function;
     void*           user_data;
 
     // pad the task to the average current cache line size (64 bytes) to avoid
     // false sharing
     char    _padding[CACHE_LINE_SIZE - (sizeof(void*) * 2)];
-} Task;
+};
 
 typedef struct Thread {
     Task        tasks[kMaxTasks];
@@ -101,7 +101,9 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
         int const thread_create_result = std_thrd_create(&pool->threads[ii].thread,
                                                          _ThreadProc,
                                                          &pool->threads[ii]);
-        assert(thread_create_result == thrd_success);
+        if (thread_create_result != thrd_success) {
+            assert(thread_create_result == thrd_success && "Could not create thread");
+        }
     }
 
     return pool;
