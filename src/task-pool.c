@@ -12,6 +12,13 @@ static void _DefaultFree(void* data, void* user_data)
     (void)user_data;
     free(data);
 }
+static AllocationCallbacks const kDefaultAllocator = {
+    .allocate_function = _DefaultAllocate,
+    .free_function = _DefaultFree,
+    .user_data = NULL,
+};
+
+
 
 /* struct definitions */
 struct TaskPool {
@@ -22,13 +29,8 @@ struct TaskPool {
 /* public methods */
 TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
 {
-    AllocationCallbacks const default_allocator = {
-        .allocate_function = _DefaultAllocate,
-        .free_function = _DefaultFree,
-        .user_data = NULL,
-    };
     if (allocator == NULL) {
-        allocator = &default_allocator;
+        allocator = &kDefaultAllocator;
     }
 
     TaskPool* pool = allocator->allocate_function(sizeof(*pool), allocator->user_data);

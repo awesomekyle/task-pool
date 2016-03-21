@@ -19,16 +19,16 @@ enum {
     kQueueMask = kMaxQueueSize - 1,
 };
 
-typedef struct SPMCQueue {
-    void*               data[kMaxQueueSize];
+typedef struct TaskQueue {
+    struct Task*        data[kMaxQueueSize];
     volatile int64_t    top;
     volatile int64_t    bottom;
-} SPMCQueue;
+} TaskQueue;
 
 /// @brief Returns a rough estimate of how many items are in the queue. Note that
 ///     this is only an estimate because other threads can change the size during
 ///     this call.
-inline int64_t spmcqSize(SPMCQueue const* queue)
+inline int64_t spmcqSize(TaskQueue const* queue)
 {
     assert(queue);
     return queue->bottom - queue->top;
@@ -36,7 +36,7 @@ inline int64_t spmcqSize(SPMCQueue const* queue)
 
 /// @brief Pushes a new item onto the bottom of the queue
 /// @return 0 on success, 1 on failure (queue is full)
-inline int spmcqPush(SPMCQueue* queue, void* value)
+inline int spmcqPush(TaskQueue* queue, struct Task* value)
 {
     assert(queue);
     if (spmcqSize(queue) == kMaxQueueSize) {
@@ -53,7 +53,7 @@ inline int spmcqPush(SPMCQueue* queue, void* value)
     return 0;
 }
 
-inline void* spmcqPop(SPMCQueue* queue)
+inline Task* spmcqPop(TaskQueue* queue)
 {
     assert(queue);
 
@@ -63,7 +63,7 @@ inline void* spmcqPop(SPMCQueue* queue)
     int64_t top = queue->top;
 
     if (top <= bottom) {
-        void* value = queue->data[bottom & kQueueMask];
+        struct Task* value = queue->data[bottom & kQueueMask];
         if (top != bottom) {
             return value;
         }
@@ -78,14 +78,14 @@ inline void* spmcqPop(SPMCQueue* queue)
     }
 }
 
-inline void* spmcqSteal(SPMCQueue* queue)
+inline Task* spmcqSteal(TaskQueue* queue)
 {
     int64_t top = queue->top;
     std_atomic_signal_fence(memory_order_seq_cst);
     int64_t bottom = queue->bottom;
 
     if (top < bottom) {
-        void* value = queue->data[top & kQueueMask];
+        struct Task* value = queue->data[top & kQueueMask];
         if (AtomicCompareAndSwap(&queue->top, top + 1, top) != top) {
             return nullptr;
         }
