@@ -1,15 +1,16 @@
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
 #include "task-pool/task-pool.h"
-#include "task-queue.h"
+#include "task-queue.hpp"
 
 #if defined(_MSC_VER)
     #include <intrin.h>
-    #define ALIGN(x) __declspec(align(x))
+    #define ALIGN(x) alignas(x)
     #define thread_local __declspec(thread)
     #define AtomicAdd(val, add) _InterlockedExchangeAdd((volatile long*)val, add)
 #elif defined(__GNUC__)
-    #define ALIGN(x) __attribute__ ((aligned(x)))
+    #define ALIGN(x) alignas(x)
     #define thread_local __thread
     #define AtomicAdd(val, add) __sync_add_and_fetch(val, add)
 #endif
@@ -31,60 +32,65 @@ struct ALIGN(CACHE_LINE_SIZE) Task {
 };
 
 typedef struct Thread {
-    Task        tasks[kMaxTasks];
-    TaskQueue   queue;
+    Task                    tasks[kMaxTasks];
+    TaskQueue<kMaxTasks>    queue;
     TaskPool*   pool;
-    thrd_t      thread;
+    std::thread thread;
     int64_t     thread_id;
 } Thread;
 
 struct TaskPool {
     AllocationCallbacks allocator;
-    volatile int    num_idle_threads;
-    int             num_threads;
-    Thread          threads[1];
+    std::atomic<int>    num_idle_threads;
+    int                 num_threads;
+    Thread              threads[1];
 };
 
+
+namespace {
+
+
 /* thread-local thread id */
-static thread_local int64_t _thread_id;
+thread_local int64_t _thread_id;
 
 /* static methods */
-static void* _DefaultAllocate(size_t size, void* user_data)
+void* _DefaultAllocate(size_t size, void* user_data)
 {
     (void)user_data;
     return malloc(size);
 }
-static void _DefaultFree(void* data, void* user_data)
+void _DefaultFree(void* data, void* user_data)
 {
     (void)user_data;
     free(data);
 }
-static AllocationCallbacks const kDefaultAllocator = {
-    .allocate_function = _DefaultAllocate,
-    .free_function = _DefaultFree,
-    .user_data = NULL,
+AllocationCallbacks const kDefaultAllocator = {
+    _DefaultAllocate,
+    _DefaultFree,
+    nullptr,
 };
 
-static int _ThreadProc(void* data)
+int _ThreadProc(void* data)
 {
     Thread* thread = (Thread*)data;
     _thread_id = thread->thread_id;
-    AtomicAdd(&thread->pool->num_idle_threads, 1);
+    thread->pool->num_idle_threads.fetch_add(1, std::memory_order_relaxed);
     return 0;
 }
 
+} // anonymous namespace
 
 /* public methods */
 TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
 {
-    if (allocator == NULL) {
+    if (allocator == nullptr) {
         allocator = &kDefaultAllocator;
     }
 
     num_threads = num_threads + 1; // add one for the main thread
     size_t const total_size = sizeof(TaskPool) + sizeof(Thread) * (num_threads - 1);
-    TaskPool* pool = allocator->allocate_function(total_size, allocator->user_data);
-    if (pool == NULL) {
+    TaskPool* pool = (TaskPool*)allocator->allocate_function(total_size, allocator->user_data);
+    if (pool == nullptr) {
         return pool;
     }
     pool->allocator = *allocator;
@@ -98,12 +104,8 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
     for (int ii = 1; ii < pool->num_threads; ++ii) {
         pool->threads[ii].thread_id = ii;
         pool->threads[ii].pool = pool;
-        int const thread_create_result = std_thrd_create(&pool->threads[ii].thread,
-                                                         _ThreadProc,
-                                                         &pool->threads[ii]);
-        if (thread_create_result != thrd_success) {
-            assert(thread_create_result == thrd_success && "Could not create thread");
-        }
+        pool->threads[ii].thread = std::thread(_ThreadProc,
+                                               &pool->threads[ii]);
     }
 
     return pool;
@@ -116,7 +118,7 @@ void tpDestroyPool(TaskPool* pool)
 
 int tpNumThreads(TaskPool const* pool)
 {
-    if (pool == NULL) {
+    if (pool == nullptr) {
         return 0;
     }
     return pool->num_threads;
@@ -124,7 +126,7 @@ int tpNumThreads(TaskPool const* pool)
 
 int tpNumIdleThreads(TaskPool const* pool)
 {
-    if (pool == NULL) {
+    if (pool == nullptr) {
         return 0;
     }
     return pool->num_idle_threads;

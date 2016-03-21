@@ -132,10 +132,8 @@ endif()
 ###
 set(SOURCES
     include/task-pool/task-pool.h
-    src/stdatomic.h
-    src/stdatomic.cpp
-    src/task-queue.h
-    src/task-pool.c
+    src/task-queue.hpp
+    src/task-pool.cpp
 )
 
 add_library(task-pool STATIC ${SOURCES})

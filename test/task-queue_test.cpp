@@ -7,114 +7,118 @@
     #include <gtest/gtest.h>
 #endif // #if defined(_MSC_VER)
 
-#include "../src/task-queue.h"
+#include "../src/task-queue.hpp"
 
 namespace {
 
+enum {
+    kMaxQueueSize = 1024,
+};
+
 TEST(TaskQueue, CreateQueue)
 {
-    TaskQueue queue = { {0} };
-    ASSERT_EQ(0, spmcqSize(&queue));
+    TaskQueue<kMaxQueueSize> queue;
+    ASSERT_EQ(0, queue.size());
 }
 TEST(TaskQueue, PushItem)
 {
-    TaskQueue queue = { {0} };
-    int const result = spmcqPush(&queue, (struct Task*)0x1234);
+    TaskQueue<kMaxQueueSize> queue;
+    int const result = queue.push((struct Task*)0x1234);
     ASSERT_EQ(0, result);
-    ASSERT_EQ(1, spmcqSize(&queue));
+    ASSERT_EQ(1, queue.size());
 }
 TEST(TaskQueue, PushItemFailsWhenQueueIsFull)
 {
-    TaskQueue queue = { {0} };
+    TaskQueue<kMaxQueueSize> queue;
     // fill queue
     for (int ii = 0; ii < kMaxQueueSize - 1; ++ii) {
-        spmcqPush(&queue, (struct Task*)0x1234);
+        queue.push((struct Task*)0x1234);
     }
-    int result = spmcqPush(&queue, (struct Task*)0x1234);
+    int result = queue.push((struct Task*)0x1234);
     ASSERT_EQ(0, result);
-    ASSERT_EQ(kMaxQueueSize, spmcqSize(&queue));
+    ASSERT_EQ(kMaxQueueSize, queue.size());
     // try pushing one more
-    result = spmcqPush(&queue, (struct Task*)0x1234);
+    result = queue.push((struct Task*)0x1234);
     ASSERT_NE(0, result);
-    ASSERT_EQ(kMaxQueueSize, spmcqSize(&queue));
+    ASSERT_EQ(kMaxQueueSize, queue.size());
 }
 
 TEST(TaskQueue, PopItemFromEmptyQueueReturnsNULL)
 {
-    TaskQueue queue = { {0} };
-    ASSERT_EQ(nullptr, spmcqPop(&queue));
+    TaskQueue<kMaxQueueSize> queue;
+    ASSERT_EQ(nullptr, queue.pop());
 }
 TEST(TaskQueue, PopValidItem)
 {
-    TaskQueue queue = { {0} };
-    spmcqPush(&queue, (struct Task*)0x1234);
-    struct Task* const value = spmcqPop(&queue);
+    TaskQueue<kMaxQueueSize> queue;
+    queue.push((struct Task*)0x1234);
+    struct Task* const value = queue.pop();
     ASSERT_EQ((struct Task*)0x1234, value);
-    ASSERT_EQ(0, spmcqSize(&queue));
+    ASSERT_EQ(0, queue.size());
 }
 
 TEST(TaskQueue, PopIsLIFOOrder)
 {
-    TaskQueue queue = { {0} };
-    spmcqPush(&queue, (struct Task*)0x1);
-    spmcqPush(&queue, (struct Task*)0x2);
-    spmcqPush(&queue, (struct Task*)0x3);
-    struct Task* value = spmcqPop(&queue);
+    TaskQueue<kMaxQueueSize> queue;
+    queue.push((struct Task*)0x1);
+    queue.push((struct Task*)0x2);
+    queue.push((struct Task*)0x3);
+    struct Task* value = queue.pop();
     ASSERT_EQ((struct Task*)0x3, value);
-    value = spmcqPop(&queue);
+    value = queue.pop();
     ASSERT_EQ((struct Task*)0x2, value);
-    value = spmcqPop(&queue);
+    value = queue.pop();
     ASSERT_EQ((struct Task*)0x1, value);
 }
 TEST(TaskQueue, PopEmptiesQueue)
 {
-    TaskQueue queue = { {0} };
-    spmcqPush(&queue, (struct Task*)0x1);
-    spmcqPush(&queue, (struct Task*)0x2);
-    spmcqPush(&queue, (struct Task*)0x3);
-    spmcqPop(&queue);
-    spmcqPop(&queue);
-    spmcqPop(&queue);
-    ASSERT_EQ(NULL, spmcqPop(&queue));
-    ASSERT_EQ(0, spmcqSize(&queue));
+    TaskQueue<kMaxQueueSize> queue;
+    queue.push((struct Task*)0x1);
+    queue.push((struct Task*)0x2);
+    queue.push((struct Task*)0x3);
+    queue.pop();
+    queue.pop();
+    queue.pop();
+    ASSERT_EQ(NULL, queue.pop());
+    ASSERT_EQ(0, queue.size());
 }
 
 TEST(TaskQueue, StealItemFromEmptyQueueReturnsNULL)
 {
-    TaskQueue queue = { {0} };
-    ASSERT_EQ(nullptr, spmcqSteal(&queue));
+    TaskQueue<kMaxQueueSize> queue;
+    ASSERT_EQ(nullptr, queue.steal());
 }
 TEST(TaskQueue, StealValidItemFromQueue)
 {
-    TaskQueue queue = { {0} };
-    spmcqPush(&queue, (struct Task*)0x1234);
-    ASSERT_EQ((struct Task*)0x1234, spmcqSteal(&queue));
+    TaskQueue<kMaxQueueSize> queue;
+    queue.push((struct Task*)0x1234);
+    ASSERT_EQ((struct Task*)0x1234, queue.steal());
 }
 
 TEST(TaskQueue, StealIsFIFOOrder)
 {
-    TaskQueue queue = { {0} };
-    spmcqPush(&queue, (struct Task*)0x1);
-    spmcqPush(&queue, (struct Task*)0x2);
-    spmcqPush(&queue, (struct Task*)0x3);
-    struct Task* value = spmcqSteal(&queue);
+    TaskQueue<kMaxQueueSize> queue;
+    queue.push((struct Task*)0x1);
+    queue.push((struct Task*)0x2);
+    queue.push((struct Task*)0x3);
+    struct Task* value = queue.steal();
     ASSERT_EQ((struct Task*)0x1, value);
-    value = spmcqSteal(&queue);
+    value = queue.steal();
     ASSERT_EQ((struct Task*)0x2, value);
-    value = spmcqSteal(&queue);
+    value = queue.steal();
     ASSERT_EQ((struct Task*)0x3, value);
 }
 TEST(TaskQueue, StealEmptiesQueue)
 {
-    TaskQueue queue = { {0} };
-    spmcqPush(&queue, (struct Task*)0x1);
-    spmcqPush(&queue, (struct Task*)0x2);
-    spmcqPush(&queue, (struct Task*)0x3);
-    spmcqSteal(&queue);
-    spmcqSteal(&queue);
-    spmcqSteal(&queue);
-    ASSERT_EQ(NULL, spmcqSteal(&queue));
-    ASSERT_EQ(0, spmcqSize(&queue));
+    TaskQueue<kMaxQueueSize> queue;
+    queue.push((struct Task*)0x1);
+    queue.push((struct Task*)0x2);
+    queue.push((struct Task*)0x3);
+    queue.steal();
+    queue.steal();
+    queue.steal();
+    ASSERT_EQ(NULL, queue.steal());
+    ASSERT_EQ(0, queue.size());
 }
 
 }
