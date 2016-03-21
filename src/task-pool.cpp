@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <thread>
+#include <condition_variable>
 #include "task-pool/task-pool.h"
 #include "task-queue.hpp"
 
@@ -47,6 +48,9 @@ struct Thread {
 
 struct TaskPool {
     AllocationCallbacks allocator;
+    std::condition_variable wake_condition;
+    std::mutex          wake_mutex;
+    std::atomic<bool>   running;
     std::atomic<int>    num_idle_threads;
     int                 num_threads;
     Thread              threads[1];
@@ -80,8 +84,20 @@ void _ThreadProc(Thread* thread)
 {
     assert(thread != nullptr);
     assert(thread->pool != nullptr);
+    TaskPool* pool = thread->pool;
     _thread_id = thread->thread_id;
-    thread->pool->num_idle_threads.fetch_add(1, std::memory_order_relaxed);
+    do {
+        // sleep
+        {
+            std::unique_lock<std::mutex> lock(pool->wake_mutex);
+            if (pool->running.load() == false) {
+                break;
+            }
+            pool->num_idle_threads++;
+            pool->wake_condition.wait(lock);
+            pool->num_idle_threads--;
+        }
+    } while (pool->running.load());
 }
 
 } // anonymous namespace
@@ -95,13 +111,14 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
 
     num_threads = num_threads + 1; // add one for the main thread
     size_t const total_size = sizeof(TaskPool) + sizeof(Thread) * (num_threads - 1);
-    TaskPool* pool = (TaskPool*)allocator->allocate_function(total_size, allocator->user_data);
+    TaskPool* pool = new (allocator->allocate_function(total_size, allocator->user_data)) TaskPool;
     if (pool == nullptr) {
         return pool;
     }
     pool->allocator = *allocator;
     pool->num_threads = num_threads;
     pool->num_idle_threads = 0;
+    pool->running.store(true);
 
     memset(pool->threads, 0, sizeof(pool->threads[0])*num_threads);
     std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -120,7 +137,11 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
 
 void tpDestroyPool(TaskPool* pool)
 {
-
+    {
+        std::lock_guard<std::mutex> lock(pool->wake_mutex);
+        pool->running.store(false);
+        pool->wake_condition.notify_all();
+    }
     for (int ii = 1; ii < pool->num_threads; ++ii) {
         pool->threads[ii].thread.join();
     }
