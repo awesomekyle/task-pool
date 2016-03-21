@@ -38,7 +38,7 @@ if(MSVC)
                             -Wno-unused-value
                             -fstack-protector-all
                             -Wno-missing-field-initializers
-                            -Wlanguage-extension-token")
+                            -Wno-language-extension-token")
         # -fno-rtti         Disable RTTI
         # -fno-exceptions   Disable exceptions
         set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual")
