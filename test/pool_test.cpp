@@ -77,9 +77,11 @@ TEST_F(TaskPoolTasks, SpawnSimpleTask)
         (*(int*)data) = 123;
     };
 
+    TaskCompletion completion = 0;
     int test_int = 0;
-    Task* task = tpSpawnTask(pool, task_function, &test_int);
-    tpWaitForTask(pool, task);
+    tpSpawnTask(pool, task_function, &test_int, &completion);
+    tpWaitForCompletion(pool, &completion);
+    ASSERT_EQ(0, completion);
     ASSERT_EQ(123, test_int);
 }
 

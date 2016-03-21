@@ -164,17 +164,19 @@ int tpNumIdleThreads(TaskPool const* pool)
     return pool->num_idle_threads;
 }
 
-Task* tpSpawnTask(TaskPool* pool, TaskFunction* function, void* data)
+void tpSpawnTask(TaskPool* pool, TaskFunction* function, void* data,
+                 TaskCompletion* completion)
 {
+    AtomicAdd(completion, 1);
     function(data);
     (void)pool;
-    return (Task*)0xFF;
+    AtomicAdd(completion, -1);
 }
 
-void tpWaitForTask(TaskPool* pool, Task* task)
+void tpWaitForCompletion(TaskPool* pool, TaskCompletion* completion)
 {
     (void)pool;
-    (void)task;
+    (void)completion;
 }
 
 void tpFinishAllWork(TaskPool* pool)

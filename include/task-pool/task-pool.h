@@ -12,6 +12,7 @@ typedef struct AllocationCallbacks {
 
 typedef struct TaskPool TaskPool;
 typedef struct Task Task;
+typedef volatile int TaskCompletion;
 
 typedef void (TaskFunction)(void* data);
 
@@ -26,13 +27,16 @@ int tpNumIdleThreads(TaskPool const* pool);
 
 /// @param [in] function The function to call asynchronously
 /// @param [in] data The data to pass to the function
-/// @return A handle to the newly spawned task. This can be queried later
-Task* tpSpawnTask(TaskPool* pool, TaskFunction* function, void* data);
+/// @param [in,out] completion An integer that will be incremented by one when
+///     the task starts and decremented upon completion of the task. This can be
+///     used to tie tasks together by giving multiple tasks the same completion
+void tpSpawnTask(TaskPool* pool, TaskFunction* function, void* data,
+                 TaskCompletion* completion);
 
-/// @brief This will wait until the specified task is complete. The calling thread
+/// @brief This will wait until the specified completion is 0. The calling thread
 ///     will help process tasks while it's waiting.
-/// @param [in] task The task to wait for
-void tpWaitForTask(TaskPool* pool, Task* task);
+/// @param [in] completion The compeltion event to wait for
+void tpWaitForCompletion(TaskPool* pool, TaskCompletion* completion);
 
 /// @brief This spins until all remaining work in the pool has completed. While
 ///     theres still work to be done, the caller thread helps complete it.
