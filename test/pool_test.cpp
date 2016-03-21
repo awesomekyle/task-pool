@@ -15,6 +15,7 @@ TEST(TaskPool, CreatePool)
 {
     TaskPool* pool = tpCreatePool(4, nullptr);
     ASSERT_NE(nullptr, pool);
+    ASSERT_EQ(5, tpNumThreads(pool));
     tpDestroyPool(pool);
 }
 TEST(TaskPool, CreatePoolCustomAllocator)
@@ -39,6 +40,21 @@ TEST(TaskPool, CreatePoolCustomAllocator)
     ASSERT_EQ(123, test_int);
     tpDestroyPool(pool);
     ASSERT_EQ(456, test_int);
+}
+
+TEST(TaskPool, NullPoolHasNoThreads)
+{
+    TaskPool* pool = NULL;
+    ASSERT_EQ(0, tpNumThreads(pool));
+}
+
+TEST(TaskPool, PoolIsIdleWhenAllWorkIsComplete)
+{
+    TaskPool* pool = tpCreatePool(4, nullptr);
+    ASSERT_NE(nullptr, pool);
+    tpFinishAllWork(pool);
+    ASSERT_EQ(4, tpNumIdleThreads(pool));
+    tpDestroyPool(pool);
 }
 
 struct TaskPoolTasks : public ::testing::Test {
