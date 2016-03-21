@@ -37,7 +37,8 @@ if(MSVC)
         set(compiler_flags "-Wall -Wextra -Werror -pedantic -Wtype-limits /MP /sdl
                             -Wno-unused-value
                             -fstack-protector-all
-                            -Wno-missing-field-initializers")
+                            -Wno-missing-field-initializers
+                            -Wlanguage-extension-token")
         # -fno-rtti         Disable RTTI
         # -fno-exceptions   Disable exceptions
         set(cxx_flags "-fno-rtti -fno-exceptions -Woverloaded-virtual")

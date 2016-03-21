@@ -5,6 +5,7 @@
 
 
 #if defined(_MSC_VER)
+    #include <intrin.h>
     #define AtomicCompareAndSwap(addr, desired, expected) _InterlockedCompareExchange64(addr, desired, expected)
 #else
     #define AtomicCompareAndSwap(addr, desired, expected) __sync_val_compare_and_swap(addr, expected, desired)
