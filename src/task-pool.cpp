@@ -7,13 +7,16 @@
 #if defined(_MSC_VER)
     #include <intrin.h>
     #define ALIGN(x) alignas(x)
-    #define thread_local __declspec(thread)
     #define AtomicAdd(val, add) _InterlockedExchangeAdd((volatile long*)val, add)
 #elif defined(__GNUC__)
     #define ALIGN(x) alignas(x)
-    #define thread_local __thread
     #define AtomicAdd(val, add) __sync_add_and_fetch(val, add)
 #endif
+
+#if defined(__MACH__)
+    #include <x86intrin.h>
+    #define thread_local __thread
+#endif // defined(__MACH__)
 
 /* constants */
 #define CACHE_LINE_SIZE 64
