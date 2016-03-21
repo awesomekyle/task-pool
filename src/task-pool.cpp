@@ -15,6 +15,9 @@
 
 #if defined(__MACH__)
     #include <x86intrin.h>
+    // Xcode's Clang doesn't support thread_local for some reason, and
+    // redefining the keyword is an error for clang
+    #pragma clang diagnostic ignored "-Wkeyword-macro"
     #define thread_local __thread
 #endif // defined(__MACH__)
 
@@ -34,13 +37,13 @@ struct ALIGN(CACHE_LINE_SIZE) Task {
     char    _padding[CACHE_LINE_SIZE - (sizeof(void*) * 2)];
 };
 
-typedef struct Thread {
+struct Thread {
     Task                    tasks[kMaxTasks];
     TaskQueue<kMaxTasks>    queue;
     TaskPool*   pool;
     std::thread thread;
     int64_t     thread_id;
-} Thread;
+};
 
 struct TaskPool {
     AllocationCallbacks allocator;
@@ -73,12 +76,12 @@ AllocationCallbacks const kDefaultAllocator = {
     nullptr,
 };
 
-int _ThreadProc(void* data)
+void _ThreadProc(Thread* thread)
 {
-    Thread* thread = (Thread*)data;
+    assert(thread != nullptr);
+    assert(thread->pool != nullptr);
     _thread_id = thread->thread_id;
     thread->pool->num_idle_threads.fetch_add(1, std::memory_order_relaxed);
-    return 0;
 }
 
 } // anonymous namespace
@@ -101,14 +104,15 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
     pool->num_idle_threads = 0;
 
     memset(pool->threads, 0, sizeof(pool->threads[0])*num_threads);
+    std::atomic_thread_fence(std::memory_order_seq_cst);
 
     pool->threads[0].thread_id = _thread_id;
     pool->threads[0].pool = pool;
     for (int ii = 1; ii < pool->num_threads; ++ii) {
         pool->threads[ii].thread_id = ii;
         pool->threads[ii].pool = pool;
-        pool->threads[ii].thread = std::thread(_ThreadProc,
-                                               &pool->threads[ii]);
+        assert(pool->threads[ii].pool);
+        pool->threads[ii].thread = std::thread(_ThreadProc, &pool->threads[ii]);
     }
 
     return pool;
@@ -116,6 +120,10 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
 
 void tpDestroyPool(TaskPool* pool)
 {
+
+    for (int ii = 1; ii < pool->num_threads; ++ii) {
+        pool->threads[ii].thread.join();
+    }
     pool->allocator.free_function(pool, pool->allocator.user_data);
 }
 
