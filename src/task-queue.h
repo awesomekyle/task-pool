@@ -87,11 +87,11 @@ inline Task* spmcqSteal(TaskQueue* queue)
     if (top < bottom) {
         struct Task* value = queue->data[top & kQueueMask];
         if (AtomicCompareAndSwap(&queue->top, top + 1, top) != top) {
-            return nullptr;
+            return NULL;
         }
         return value;
     } else {
-        return nullptr;
+        return NULL;
     }
 }
 

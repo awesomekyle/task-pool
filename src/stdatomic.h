@@ -7,14 +7,14 @@
 extern "C" {
 #endif /* __cplusplus */
 
-enum memory_order {
+typedef enum memory_order {
     memory_order_relaxed,
     memory_order_consume,
     memory_order_acquire,
     memory_order_release,
     memory_order_acq_rel,
     memory_order_seq_cst
-};
+} memory_order;
 
 void std_atomic_signal_fence( memory_order order );
 void std_atomic_thread_fence( memory_order order );
