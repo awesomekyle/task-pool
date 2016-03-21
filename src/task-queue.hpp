@@ -25,7 +25,7 @@ public:
     /// @return 0 on success, 1 on failure (queue is full)
     int push(struct Task* value)
     {
-        if (this->size() == kMaxQueueSize) {
+        if (this->size() == kMaxCount) {
             return 1;
         }
 
