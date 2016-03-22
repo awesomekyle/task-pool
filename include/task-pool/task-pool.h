@@ -14,7 +14,7 @@ typedef struct TaskPool TaskPool;
 typedef struct Task Task;
 typedef volatile int TaskCompletion;
 
-typedef void (TaskFunction)(void* data);
+typedef void (TaskFunction)(int thread_id, void* data);
 
 /// @param [in] num_threads The number of additional threads to spawn. Set this
 ///     to the total number of hardware threads your machine has - 1 for the main

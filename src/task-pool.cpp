@@ -26,16 +26,18 @@
 #define CACHE_LINE_SIZE 64
 enum {
     kMaxTasks = 1024,
+    kTasksMask = kMaxTasks - 1,
 };
 
 /* struct definitions */
 struct ALIGN(CACHE_LINE_SIZE) Task {
     TaskFunction*   function;
     void*           user_data;
+    TaskCompletion* completion;
 
     // pad the task to the average current cache line size (64 bytes) to avoid
     // false sharing
-    char    _padding[CACHE_LINE_SIZE - (sizeof(void*) * 2)];
+    char    _padding[CACHE_LINE_SIZE - (sizeof(void*) * 3)];
 };
 
 struct Thread {
@@ -43,7 +45,8 @@ struct Thread {
     TaskQueue<kMaxTasks>    queue;
     TaskPool*   pool;
     std::thread thread;
-    int64_t     thread_id;
+    uint64_t    num_tasks;
+    int         thread_id;
 };
 
 struct TaskPool {
@@ -51,7 +54,8 @@ struct TaskPool {
     std::condition_variable wake_condition;
     std::mutex          wake_mutex;
     std::atomic<bool>   running;
-    std::atomic<int>    num_idle_threads;
+    std::atomic<int>    num_idle_threads = {0};
+    std::atomic<int>    in_progress_tasks = {0};
     int                 num_threads;
     Thread              threads[1];
 };
@@ -61,7 +65,7 @@ namespace {
 
 
 /* thread-local thread id */
-thread_local int64_t _thread_id;
+thread_local int _thread_id;
 
 /* static methods */
 void* _DefaultAllocate(size_t size, void* user_data)
@@ -80,6 +84,46 @@ AllocationCallbacks const kDefaultAllocator = {
     nullptr,
 };
 
+Task* _GetTask(Thread* thread)
+{
+    TaskPool* pool = thread->pool;
+    Task* task = thread->queue.pop();
+    if (task == nullptr) {
+        // round robin through threads
+        for (int ii = 1; ii < pool->num_threads; ++ii) {
+            int const other_thread_id = (_thread_id + ii) % pool->num_threads;
+            assert(other_thread_id >= 0);
+            assert(other_thread_id < pool->num_threads);
+            auto& other_queue = pool->threads[other_thread_id].queue;
+
+            task = other_queue.steal();
+            if (task) {
+                return task;
+            }
+        }
+    }
+    return task;
+}
+
+void _RunTask(TaskPool* pool, Task* task)
+{
+    task->function(_thread_id, task->user_data);
+    pool->in_progress_tasks--;
+    AtomicAdd(task->completion, -1);
+    task->completion = nullptr;
+}
+
+Task* _AllocateTask(TaskPool* pool)
+{
+    Thread& thread = pool->threads[_thread_id];
+    Task* task = nullptr;
+    do {
+        uint64_t const index = thread.num_tasks++;
+        task = &thread.tasks[index & kTasksMask];
+    } while (task->completion);
+    return task;
+}
+
 void _ThreadProc(Thread* thread)
 {
     assert(thread != nullptr);
@@ -96,6 +140,14 @@ void _ThreadProc(Thread* thread)
             pool->num_idle_threads++;
             pool->wake_condition.wait(lock);
             pool->num_idle_threads--;
+        }
+        if (pool->running.load() == false) {
+            break;
+        }
+        Task* task = _GetTask(thread);
+        while (task != nullptr) {
+            _RunTask(pool, task);
+            task = _GetTask(thread);
         }
     } while (pool->running.load());
 }
@@ -137,6 +189,7 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
 
 void tpDestroyPool(TaskPool* pool)
 {
+    tpFinishAllWork(pool);
     {
         std::lock_guard<std::mutex> lock(pool->wake_mutex);
         pool->running.store(false);
@@ -168,20 +221,33 @@ void tpSpawnTask(TaskPool* pool, TaskFunction* function, void* data,
                  TaskCompletion* completion)
 {
     AtomicAdd(completion, 1);
-    function(data);
-    (void)pool;
-    AtomicAdd(completion, -1);
+    pool->in_progress_tasks++;
+    Task* task = _AllocateTask(pool);
+    task->completion = completion;
+    task->function = function;
+    task->user_data = data;
+    pool->threads[_thread_id].queue.push(task);
+    pool->wake_condition.notify_all();
 }
 
 void tpWaitForCompletion(TaskPool* pool, TaskCompletion* completion)
 {
-    (void)pool;
-    (void)completion;
+    while (*completion) {
+        Task* next_task = _GetTask(&pool->threads[_thread_id]);
+        if (next_task) {
+            _RunTask(pool, next_task);
+        }
+    }
 }
 
 void tpFinishAllWork(TaskPool* pool)
 {
-    while (pool->num_idle_threads != pool->num_threads - 1)
-        ;
+    Task* task = _GetTask(&pool->threads[_thread_id]);
+    while (task || pool->in_progress_tasks.load() > 0) {
+        if (task) {
+            _RunTask(pool, task);
+        }
+        task = _GetTask(&pool->threads[_thread_id]);
+    }
 }
 

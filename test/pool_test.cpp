@@ -6,6 +6,7 @@
 #else
     #include <gtest/gtest.h>
 #endif // #if defined(_MSC_VER)
+#include <atomic>
 
 #include "task-pool/task-pool.h"
 
@@ -73,7 +74,7 @@ struct TaskPoolTasks : public ::testing::Test {
 
 TEST_F(TaskPoolTasks, SpawnSimpleTask)
 {
-    auto const task_function = [](void* data) {
+    auto const task_function = [](int, void* data) {
         (*(int*)data) = 123;
     };
 
@@ -83,6 +84,40 @@ TEST_F(TaskPoolTasks, SpawnSimpleTask)
     tpWaitForCompletion(pool, &completion);
     ASSERT_EQ(0, completion);
     ASSERT_EQ(123, test_int);
+}
+TEST_F(TaskPoolTasks, TasksRunOnOtherThreads)
+{
+
+    auto const task_function = [](int thread_id, void* data) {
+        ((std::atomic<int>*)data)->fetch_add(thread_id);
+    };
+
+    TaskCompletion completion = 0;
+    std::atomic<int> test_int = 0;
+    for (int ii = 0; ii < 1024; ++ii) { // 1024 should be enough for another thread
+        tpSpawnTask(pool, task_function, &test_int, &completion);
+    }
+    tpWaitForCompletion(pool, &completion);
+    ASSERT_EQ(0, completion);
+    ASSERT_GT(test_int, 0);
+}
+
+
+TEST_F(TaskPoolTasks, TaskStressTest)
+{
+    auto const task_function = [](int, void* data) {
+        ((std::atomic<int>*)data)->fetch_add(1);
+    };
+
+    int const kTotalTasks = 1000 * 1000;
+    TaskCompletion completion = 0;
+    std::atomic<int> test_int = 0;
+    for (int ii = 0; ii < kTotalTasks; ++ii) {
+        tpSpawnTask(pool, task_function, &test_int, &completion);
+    }
+    tpWaitForCompletion(pool, &completion);
+    ASSERT_EQ(0, completion);
+    ASSERT_EQ(kTotalTasks, test_int.load());
 }
 
 }
