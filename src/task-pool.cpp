@@ -183,6 +183,8 @@ TaskPool* tpCreatePool(int num_threads, AllocationCallbacks const* allocator)
         assert(pool->threads[ii].pool);
         pool->threads[ii].thread = std::thread(_ThreadProc, &pool->threads[ii]);
     }
+    while(pool->num_idle_threads.load() != num_threads-1)
+        ; // wait for all threads to idle
 
     return pool;
 }
