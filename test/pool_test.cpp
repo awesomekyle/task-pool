@@ -93,7 +93,7 @@ TEST_F(TaskPoolTasks, TasksRunOnOtherThreads)
     };
 
     TaskCompletion completion = 0;
-    std::atomic<int> test_int = 0;
+    std::atomic<int> test_int = {0};
     for (int ii = 0; ii < 1024; ++ii) { // 1024 should be enough for another thread
         tpSpawnTask(pool, task_function, &test_int, &completion);
     }
@@ -111,7 +111,7 @@ TEST_F(TaskPoolTasks, TaskStressTest)
 
     int const kTotalTasks = 1000 * 1000;
     TaskCompletion completion = 0;
-    std::atomic<int> test_int = 0;
+    std::atomic<int> test_int = {0};
     for (int ii = 0; ii < kTotalTasks; ++ii) {
         tpSpawnTask(pool, task_function, &test_int, &completion);
     }
